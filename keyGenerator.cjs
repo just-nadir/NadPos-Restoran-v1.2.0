@@ -86,7 +86,7 @@ const generateLifetime = (clientName, hardwareId = null) => {
     return generateKey(clientName, 'lifetime', null, hardwareId);
 };
 
-const generateSubscription = (clientName, days, hardwareId = null) => {
+const generateSubscription = (clientName, days, hardwareId = '256a28ef4089a131') => {
     return generateKey(clientName, 'monthly', days, hardwareId);
 };
 
