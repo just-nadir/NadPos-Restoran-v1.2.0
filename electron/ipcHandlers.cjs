@@ -125,6 +125,7 @@ function registerIpcHandlers(ipcMain) {
     // ==========================================
     ipcMain.handle('license-check', () => licenseController.checkLicense());
     ipcMain.handle('license-activate', (e, key) => licenseController.activateLicense(key));
+    ipcMain.handle('license-get-hwid', () => licenseController.getHardwareId());
 }
 
 module.exports = registerIpcHandlers;

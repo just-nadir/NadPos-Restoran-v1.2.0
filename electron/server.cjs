@@ -6,6 +6,29 @@ const { onChange } = require('./database.cjs'); // Signal
 const ip = require('ip');
 const path = require('path');
 
+// OPTIMIZATSIYA: Simple in-memory cache
+const cache = new Map();
+
+function getCachedData(key, fetcher, ttl = 60000) {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.time < ttl) {
+    return cached.data;
+  }
+  const data = fetcher();
+  cache.set(key, { data, time: Date.now() });
+  return data;
+}
+
+// Cache ni tozalash (har 5 daqiqada)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of cache.entries()) {
+    if (now - value.time > 300000) { // 5 daqiqa
+      cache.delete(key);
+    }
+  }
+}, 300000);
+
 // Controllerlar
 const tableController = require('./controllers/tableController.cjs');
 const productController = require('./controllers/productController.cjs');
@@ -25,15 +48,56 @@ function startServer() {
     cors: { origin: "*", methods: ["GET", "POST"] }
   });
 
-  // Signalni tarqatish
+  // OPTIMIZATSIYA: Room-based broadcasting
+  // Har bir hall uchun alohida room yaratamiz
+  io.on('connection', (socket) => {
+    console.log('📱 Yangi qurilma ulandi:', socket.id);
+
+    // Client o'zining hallini ko'rsatishi mumkin
+    socket.on('join-hall', (hallId) => {
+      socket.join(`hall-${hallId}`);
+      console.log(`🏛️ Socket ${socket.id} joined hall-${hallId}`);
+    });
+
+    // Barcha yangilanishlarni olish uchun (admin va hisobotlar)
+    socket.on('join-global', () => {
+      socket.join('global');
+      console.log(`🌍 Socket ${socket.id} joined global updates`);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('❌ Qurilma uzildi:', socket.id);
+    });
+  });
+
+  // OPTIMIZATSIYA: Intelligent broadcasting
+  // Faqat kerakli room'ga yuborish
   onChange((type, id) => {
     console.log(`📡 Update: ${type} ${id || ''}`);
+
+    // Table yangilanishi - faqat tegishli hallga
+    if (type === 'table' && id) {
+      const table = tableController.getTables().find(t => t.id == id);
+      if (table && table.hall_id) {
+        io.to(`hall-${table.hall_id}`).emit('update', { type, id });
+        io.to('global').emit('update', { type, id }); // Admin uchun
+        return;
+      }
+    }
+
+    // Boshqa barcha yangilanishlar - hammaga
     io.emit('update', { type, id });
   });
 
-  io.on('connection', (socket) => {
-    console.log('📱 Yangi qurilma ulandi:', socket.id);
-    socket.on('disconnect', () => console.log('❌ Qurilma uzildi:', socket.id));
+  // OPTIMIZATSIYA: Cache invalidation on DB changes
+  // Ma'lumotlar o'zgarganda cache ni tozalash
+  onChange((type, id) => {
+    if (type === 'products' || type === 'categories') {
+      cache.delete('products');
+      cache.delete('categories');
+    } else if (type === 'settings' || type === 'kitchens') {
+      cache.delete('settings');
+    }
   });
 
   // --- API ---
@@ -58,12 +122,18 @@ function startServer() {
   });
 
   app.get('/api/categories', (req, res) => {
-    try { res.json(productController.getCategories()); } catch (e) { res.status(500).json({ error: e.message }); }
+    try {
+      const categories = getCachedData('categories', () => productController.getCategories(), 120000);
+      res.json(categories);
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
   app.get('/api/products', (req, res) => {
     try {
-      const products = productController.getProducts().filter(p => p.is_active === 1);
+      const products = getCachedData('products', () =>
+        productController.getProducts().filter(p => p.is_active === 1),
+        90000
+      );
       res.json(products);
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
@@ -102,7 +172,10 @@ function startServer() {
   // ---------------------
 
   app.get('/api/settings', (req, res) => {
-    try { res.json(settingsController.getSettings()); } catch (e) { res.status(500).json({ error: e.message }); }
+    try {
+      const settings = getCachedData('settings', () => settingsController.getSettings(), 300000);
+      res.json(settings);
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
   app.post('/api/tables/guests', (req, res) => {

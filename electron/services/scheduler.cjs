@@ -13,6 +13,12 @@ const initScheduler = () => {
         await runDebtReminderCheck();
     });
 
+    // YANGI: Har kuni soat 02:00 da avtomatik backup
+    cron.schedule('0 2 * * *', async () => {
+        log.info("Scheduler: Avtomatik backup boshlanmoqda...");
+        await runDatabaseBackup();
+    });
+
     // Test uchun: Har daqiqada ishga tushadi (developmentda yoqish mumkin)
     // cron.schedule('* * * * *', async () => {
     //     log.info("Scheduler: Test - har daqiqada");
@@ -28,7 +34,7 @@ const runBirthdayCheck = async () => {
         const template = db.prepare(
             "SELECT content FROM sms_templates WHERE type = 'birthday' AND is_active = 1"
         ).get();
-        
+
         if (!template) {
             log.info("Scheduler: Tug'ilgan kun shabloni o'chirilgan yoki yo'q");
             return;
@@ -52,15 +58,15 @@ const runBirthdayCheck = async () => {
 
         for (const customer of customers) {
             const message = template.content.replace('{name}', customer.name);
-            
+
             const result = await sendSMS(customer.phone, message, 'birthday');
-            
+
             if (result.success) {
                 log.info(`Scheduler: Tug'ilgan kun SMS yuborildi - ${customer.name}`);
             } else {
                 log.error(`Scheduler: Tug'ilgan kun SMS xatosi - ${customer.name}: ${result.error}`);
             }
-            
+
             // Rate limiting
             await new Promise(resolve => setTimeout(resolve, 500));
         }
@@ -77,7 +83,7 @@ const runDebtReminderCheck = async () => {
         const template = db.prepare(
             "SELECT content FROM sms_templates WHERE type = 'debt_reminder' AND is_active = 1"
         ).get();
-        
+
         if (!template) {
             log.info("Scheduler: Qarz eslatmasi shabloni o'chirilgan yoki yo'q");
             return;
@@ -109,25 +115,41 @@ const runDebtReminderCheck = async () => {
             const message = template.content
                 .replace('{name}', debt.name)
                 .replace('{amount}', debt.amount.toLocaleString());
-            
+
             const result = await sendSMS(debt.phone, message, 'debt_reminder');
-            
+
             if (result.success) {
                 // SMS yuborilgan sanani yangilash
                 db.prepare(
                     "UPDATE customer_debts SET last_sms_date = datetime('now', 'localtime') WHERE id = ?"
                 ).run(debt.id);
-                
+
                 log.info(`Scheduler: Qarz eslatmasi yuborildi - ${debt.name} (${debt.amount} so'm)`);
             } else {
                 log.error(`Scheduler: Qarz eslatmasi xatosi - ${debt.name}: ${result.error}`);
             }
-            
+
             // Rate limiting
             await new Promise(resolve => setTimeout(resolve, 500));
         }
     } catch (error) {
         log.error("Scheduler: Qarz eslatmasi tekshiruvida xato:", error.message);
+    }
+};
+
+/**
+ * Ma'lumotlar bazasi zaxirasi (Backup)
+ */
+const runDatabaseBackup = async () => {
+    try {
+        const settingsController = require('../controllers/settingsController.cjs');
+        const result = await settingsController.backupDB();
+
+        if (result.success) {
+            log.info(`Scheduler: Avtomatik backup muvaffaqiyatli bajarildi - ${result.path}`);
+        }
+    } catch (error) {
+        log.error("Scheduler: Backup xatosi:", error.message);
     }
 };
 

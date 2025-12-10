@@ -11,7 +11,7 @@ const OrderSummary = ({ table, onDeselect }) => {
   const [orderItems, setOrderItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [printingCheck, setPrintingCheck] = useState(false);
-  
+
   const [settings, setSettings] = useState({});
 
   useEffect(() => {
@@ -51,12 +51,12 @@ const OrderSummary = ({ table, onDeselect }) => {
 
   const handlePrintCheck = async () => {
     if (!table || !window.electron || printingCheck) return;
-    
+
     setPrintingCheck(true);
     try {
       const { ipcRenderer } = window.electron;
       const result = await ipcRenderer.invoke('print-check', table.id);
-      
+
       if (result.success) {
         console.log(`✅ HISOB chop etildi: Check #${result.checkNumber}`);
         // Statusni real-time yangilash uchun onDeselect chaqirilishi mumkin
@@ -79,11 +79,11 @@ const OrderSummary = ({ table, onDeselect }) => {
 
   let service = 0;
   const svcValue = Number(settings.serviceChargeValue) || 0;
-  
+
   if (settings.serviceChargeType === 'percent') {
-      service = (subtotal * svcValue) / 100;
+    service = (subtotal * svcValue) / 100;
   } else {
-      service = guestsCount * svcValue;
+    service = guestsCount * svcValue;
   }
 
   const preTotal = subtotal + service;
@@ -98,12 +98,44 @@ const OrderSummary = ({ table, onDeselect }) => {
   }
   const finalTotal = preTotal - discountAmount;
 
-  const handlePaymentSuccess = async (method, dueDate) => {
+  const handlePaymentSuccess = async (methodOrPayments, dueDateOrIsSplit) => {
     if (!table || !window.electron) return;
     try {
       const { ipcRenderer } = window.electron;
-      
-      const checkoutData = {
+
+      let checkoutData;
+
+      // Check if this is a split payment
+      const isSplitPayment = Array.isArray(methodOrPayments);
+
+      if (isSplitPayment) {
+        // Split payment mode
+        const splitPayments = methodOrPayments;
+
+        // Generate payment_details for items_json
+        const paymentDetails = splitPayments.map(p => ({
+          method: p.method,
+          amount: p.amount,
+          dueDate: p.dueDate || null
+        }));
+
+        checkoutData = {
+          tableId: table.id,
+          total: finalTotal,
+          subtotal: subtotal,
+          discount: discountAmount,
+          paymentMethod: 'split', // Indicate this is a split payment
+          customerId: selectedCustomer ? selectedCustomer.id : null,
+          items: orderItems,
+          dueDate: null,
+          paymentDetails: paymentDetails // Array of payment objects
+        };
+      } else {
+        // Single payment mode (original behavior)
+        const method = methodOrPayments;
+        const dueDate = dueDateOrIsSplit;
+
+        checkoutData = {
           tableId: table.id,
           total: finalTotal,
           subtotal: subtotal,
@@ -112,10 +144,11 @@ const OrderSummary = ({ table, onDeselect }) => {
           customerId: selectedCustomer ? selectedCustomer.id : null,
           items: orderItems,
           dueDate: dueDate || null
-      };
+        };
+      }
 
       await ipcRenderer.invoke('checkout', checkoutData);
-      
+
       setIsPaymentModalOpen(false);
       if (onDeselect) onDeselect();
 
@@ -123,12 +156,12 @@ const OrderSummary = ({ table, onDeselect }) => {
       console.error(error);
     }
   };
-  
+
   const handleBonusChange = (e) => {
     const valueStr = e.target.value;
     if (valueStr === '') {
-        setBonusToUse(0);
-        return;
+      setBonusToUse(0);
+      return;
     }
     let val = Number(valueStr);
     if (val < 0) return;
@@ -138,7 +171,7 @@ const OrderSummary = ({ table, onDeselect }) => {
   };
 
   if (!table) {
-     return (
+    return (
       <div className="w-96 bg-white h-screen shadow-xl border-l border-gray-100 flex flex-col items-center justify-center text-gray-400 p-10 text-center">
         <div className="bg-gray-100 p-6 rounded-full mb-4"><CreditCard size={48} /></div>
         <h3 className="font-bold text-lg text-gray-600">Stol tanlanmagan</h3>
@@ -154,21 +187,21 @@ const OrderSummary = ({ table, onDeselect }) => {
         <div className={`p-6 border-b border-gray-100 ${table.status === 'payment' ? 'bg-yellow-50' : 'bg-gray-50'}`}>
           <div className="flex justify-between items-center mb-1">
             <h2 className="text-2xl font-bold text-gray-800">{table.name}</h2>
-            
+
             {/* CHEK RAQAMI */}
             {table.current_check_number > 0 && (
-                <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-200">
-                    <Hash size={14} className="text-gray-500" />
-                    <span className="font-black text-lg text-gray-800">{table.current_check_number}</span>
-                </div>
+              <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-200">
+                <Hash size={14} className="text-gray-500" />
+                <span className="font-black text-lg text-gray-800">{table.current_check_number}</span>
+              </div>
             )}
           </div>
-          
+
           <div className="flex justify-between items-center mt-2">
-             <div className="flex items-center gap-2 text-gray-500 text-sm">
-                <Users size={14} /> <span>{guestsCount} mehmon</span>
-             </div>
-             <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase
+            <div className="flex items-center gap-2 text-gray-500 text-sm">
+              <Users size={14} /> <span>{guestsCount} mehmon</span>
+            </div>
+            <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase
               ${table.status === 'occupied' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}>
               {table.status === 'occupied' ? 'Band' : 'To\'lov'}
             </span>
@@ -178,62 +211,62 @@ const OrderSummary = ({ table, onDeselect }) => {
         {/* CUSTOMER */}
         {selectedCustomer && (
           <div className="px-6 py-4 bg-blue-50 border-b border-blue-100">
-             <div className="flex justify-between items-start mb-2">
-               <div className="flex items-center gap-2">
-                  <User size={18} className="text-blue-600" />
-                  <div>
-                     <p className="font-bold text-blue-800">{selectedCustomer.name}</p>
-                     <p className="text-xs text-blue-600">
-                        {selectedCustomer.type === 'discount' 
-                          ? `VIP: ${selectedCustomer.value}% Chegirma` 
-                          : `Bonus: ${selectedCustomer.balance.toLocaleString()} so'm`}
-                     </p>
-                  </div>
-               </div>
-               <button onClick={() => setSelectedCustomer(null)} className="p-1 hover:bg-blue-200 rounded text-blue-600"><X size={16} /></button>
-             </div>
-             {selectedCustomer.type === 'cashback' && selectedCustomer.balance > 0 && (
-               <div className="bg-white p-2 rounded-lg border border-blue-200 mt-2">
-                 <div className="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>Bonusdan:</span><span>Max: {selectedCustomer.balance.toLocaleString()}</span>
-                 </div>
-                 <div className="flex items-center gap-2">
-                    <Wallet size={16} className="text-green-500" />
-                    <input 
-                        type="number" 
-                        value={bonusToUse === 0 ? '' : bonusToUse} 
-                        onChange={handleBonusChange} 
-                        placeholder="Summa" 
-                        className="w-full outline-none text-sm font-bold text-gray-800 bg-transparent"
-                    />
-                 </div>
-               </div>
-             )}
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex items-center gap-2">
+                <User size={18} className="text-blue-600" />
+                <div>
+                  <p className="font-bold text-blue-800">{selectedCustomer.name}</p>
+                  <p className="text-xs text-blue-600">
+                    {selectedCustomer.type === 'discount'
+                      ? `VIP: ${selectedCustomer.value}% Chegirma`
+                      : `Bonus: ${selectedCustomer.balance.toLocaleString()} so'm`}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedCustomer(null)} className="p-1 hover:bg-blue-200 rounded text-blue-600"><X size={16} /></button>
+            </div>
+            {selectedCustomer.type === 'cashback' && selectedCustomer.balance > 0 && (
+              <div className="bg-white p-2 rounded-lg border border-blue-200 mt-2">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>Bonusdan:</span><span>Max: {selectedCustomer.balance.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Wallet size={16} className="text-green-500" />
+                  <input
+                    type="number"
+                    value={bonusToUse === 0 ? '' : bonusToUse}
+                    onChange={handleBonusChange}
+                    placeholder="Summa"
+                    className="w-full outline-none text-sm font-bold text-gray-800 bg-transparent"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* ITEMS */}
         <div className="flex-1 overflow-y-auto p-4">
-          {loading ? <div className="text-center mt-10 text-gray-400">Yuklanmoqda...</div> : 
-           orderItems.length === 0 ? <div className="text-center mt-10 text-gray-400">Buyurtmalar yo'q</div> :
-           orderItems.map((item, index) => (
-            <div key={index} className="flex justify-between items-center py-3 border-b border-dashed border-gray-200 last:border-0">
-              <div>
-                <p className="font-medium text-gray-800">{item.product_name}</p>
-                <p className="text-xs text-gray-400">{item.price.toLocaleString()} x {item.quantity}</p>
-              </div>
-              <p className="font-bold text-gray-700">{(item.price * item.quantity).toLocaleString()}</p>
-            </div>
-          ))}
+          {loading ? <div className="text-center mt-10 text-gray-400">Yuklanmoqda...</div> :
+            orderItems.length === 0 ? <div className="text-center mt-10 text-gray-400">Buyurtmalar yo'q</div> :
+              orderItems.map((item, index) => (
+                <div key={index} className="flex justify-between items-center py-3 border-b border-dashed border-gray-200 last:border-0">
+                  <div>
+                    <p className="font-medium text-gray-800">{item.product_name}</p>
+                    <p className="text-xs text-gray-400">{item.price.toLocaleString()} x {item.quantity}</p>
+                  </div>
+                  <p className="font-bold text-gray-700">{(item.price * item.quantity).toLocaleString()}</p>
+                </div>
+              ))}
         </div>
-        
+
         {/* TOTALS */}
         <div className="p-4 bg-gray-50 border-t border-gray-200 space-y-2">
           <div className="flex justify-between text-gray-600"><span>Stol hisobi:</span><span>{subtotal.toLocaleString()}</span></div>
-          
+
           <div className="flex justify-between text-gray-600">
-             <span>Xizmat ({settings.serviceChargeType === 'percent' ? `${settings.serviceChargeValue}%` : 'Fixed'}):</span>
-             <span>{service.toLocaleString()}</span>
+            <span>Xizmat ({settings.serviceChargeType === 'percent' ? `${settings.serviceChargeValue}%` : 'Fixed'}):</span>
+            <span>{service.toLocaleString()}</span>
           </div>
 
           {discountAmount > 0 && (
@@ -245,26 +278,25 @@ const OrderSummary = ({ table, onDeselect }) => {
         {/* BUTTONS */}
         <div className="p-4 border-t border-gray-100 space-y-3 bg-white">
           <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => setIsCustomerModalOpen(true)} 
-                className={`flex items-center justify-center gap-2 py-3 border-2 rounded-xl font-bold transition-colors ${selectedCustomer ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50'}`}
-              >
-                  <User size={20} /> {selectedCustomer ? 'Almashtirish' : 'Mijoz'}
-              </button>
-              <button 
-                onClick={handlePrintCheck}
-                disabled={handlePrintCheckDisabled()}
-                className={`flex items-center justify-center gap-2 py-3 border-2 rounded-xl font-bold transition-colors ${
-                  handlePrintCheckDisabled() 
-                    ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
-                    : 'bg-white border-gray-100 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-200'
+            <button
+              onClick={() => setIsCustomerModalOpen(true)}
+              className={`flex items-center justify-center gap-2 py-3 border-2 rounded-xl font-bold transition-colors ${selectedCustomer ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50'}`}
+            >
+              <User size={20} /> {selectedCustomer ? 'Almashtirish' : 'Mijoz'}
+            </button>
+            <button
+              onClick={handlePrintCheck}
+              disabled={handlePrintCheckDisabled()}
+              className={`flex items-center justify-center gap-2 py-3 border-2 rounded-xl font-bold transition-colors ${handlePrintCheckDisabled()
+                  ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-white border-gray-100 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-200'
                 }`}
-              >
-                  <Printer size={20} /> {printingCheck ? 'Chop...' : 'Chek'}
-              </button>
+            >
+              <Printer size={20} /> {printingCheck ? 'Chop...' : 'Chek'}
+            </button>
           </div>
-          <button 
-            onClick={() => setIsPaymentModalOpen(true)} 
+          <button
+            onClick={() => setIsPaymentModalOpen(true)}
             className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
           >
             <CreditCard size={20} /> To'lovni Yopish
@@ -272,9 +304,9 @@ const OrderSummary = ({ table, onDeselect }) => {
         </div>
       </div>
 
-      <PaymentModal 
-        isOpen={isPaymentModalOpen} 
-        onClose={() => setIsPaymentModalOpen(false)} 
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
         totalAmount={finalTotal}
         onPay={handlePaymentSuccess}
         selectedCustomer={selectedCustomer}

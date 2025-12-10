@@ -1,21 +1,27 @@
-import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'; // Navigate qo'shildi
-import DesktopLayout from './components/DesktopLayout';
-import WaiterApp from './mobile/WaiterApp';
-// Context yo'q joylarda prop-drilling hozircha qoladi, 
-// lekin biz keyingi bosqichda DesktopLayout ichida useGlobal() ni ishlatamiz.
+import React, { lazy, Suspense } from 'react';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import LoadingSpinner from './components/LoadingSpinner';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Lazy loading - Code Splitting
+const DesktopLayout = lazy(() => import('./components/DesktopLayout'));
+const WaiterApp = lazy(() => import('./mobile/WaiterApp'));
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Asosiy Desktop ilova */}
-        <Route path="/" element={<DesktopLayout />} />
-        
-        {/* Mobil Ofitsiant ilovasi */}
-        <Route path="/waiter" element={<WaiterApp />} />
-      </Routes>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            {/* Asosiy Desktop ilova */}
+            <Route path="/" element={<DesktopLayout />} />
+
+            {/* Mobil Ofitsiant ilovasi */}
+            <Route path="/waiter" element={<WaiterApp />} />
+          </Routes>
+        </Suspense>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

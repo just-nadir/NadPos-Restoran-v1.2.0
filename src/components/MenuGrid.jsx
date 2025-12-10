@@ -12,9 +12,9 @@ const MenuGrid = () => {
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input 
-            type="text" 
-            placeholder="Qidirish..." 
+          <input
+            type="text"
+            placeholder="Qidirish..."
             className="pl-10 pr-4 py-2 rounded-lg border-none shadow-sm w-64 focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
@@ -23,8 +23,8 @@ const MenuGrid = () => {
       {/* Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pb-20">
         {products.map((product) => (
-          <div 
-            key={product.id} 
+          <div
+            key={product.id}
             className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center text-center border border-transparent hover:border-blue-500"
           >
             <div className={`w-24 h-24 ${product.color} rounded-full flex items-center justify-center text-4xl mb-3`}>
@@ -41,4 +41,4 @@ const MenuGrid = () => {
   );
 };
 
-export default MenuGrid;
+export default React.memo(MenuGrid);

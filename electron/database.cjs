@@ -224,6 +224,25 @@ function initDB() {
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_debt_history_customer ON debt_history(customer_id)`).run();
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_customer_debts_status ON customer_debts(is_paid, due_date)`).run();
 
+    // --- YANGI PERFORMANCE INDEKSLAR ---
+    // Sales jadvalidagi tez-tez ishlatiladigan ustunlar
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_sales_payment ON sales(payment_method)`).run();
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_sales_waiter ON sales(waiter_name)`).run();
+
+    // Customers jadvali uchun qidiruv optimizatsiyasi
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)`).run();
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_customers_type ON customers(type)`).run();
+
+    // Products jadvalidagi faol mahsulotlar uchun
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active)`).run();
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_order_items_dest ON order_items(destination)`).run();
+
+    // Composite indekslar - bir nechta ustun bo'yicha qidiruv uchun
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_sales_date_method ON sales(date, payment_method)`).run();
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_customer_debts_paid_date ON customer_debts(is_paid, due_date)`).run();
+
+    console.log("✅ Performance indekslari tekshirildi va yaratildi.");
+
     // --- MIGRATSIYALAR (Yangi ustunlarni qo'shish) ---
 
     // 1. Users jadvali uchun

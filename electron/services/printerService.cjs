@@ -139,8 +139,19 @@ module.exports = {
             </tr>
         `).join('');
 
-        const paymentMap = { 'cash': 'Naqd', 'card': 'Karta', 'click': 'Click/Payme', 'debt': 'Nasiya' };
+        const paymentMap = { 'cash': 'Naqd', 'card': 'Karta', 'click': 'Click/Payme', 'debt': 'Nasiya', 'split': 'Bo\'lingan To\'lov' };
         const paymentMethod = paymentMap[orderData.paymentMethod] || orderData.paymentMethod || 'Naqd';
+
+        // Split payment details section
+        let paymentDetailsHtml = '';
+        if (orderData.paymentMethod === 'split' && orderData.paymentDetails && orderData.paymentDetails.length > 0) {
+            paymentDetailsHtml = orderData.paymentDetails.map((p, i) => `
+                <div class="flex" style="font-size: 11px; margin-left: 10px;">
+                    <span>${i + 1}. ${paymentMap[p.method] || p.method}:</span>
+                    <span>${p.amount.toLocaleString()} so'm</span>
+                </div>
+            `).join('');
+        }
 
         const content = `
             <div class="text-center">
@@ -171,6 +182,7 @@ module.exports = {
                 <span>To'lov:</span>
                 <span class="bold">${paymentMethod}</span>
             </div>
+            ${paymentDetailsHtml}
 
             <div class="line"></div>
 

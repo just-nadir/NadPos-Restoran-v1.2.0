@@ -5,7 +5,7 @@ import { useIpcListener } from '../hooks/useIpcListener'; // YANGI HOOK
 const TablesGrid = ({ onSelectTable }) => {
   const [tables, setTables] = useState([]);
   const [halls, setHalls] = useState([]);
-  const [activeHallId, setActiveHallId] = useState('all'); 
+  const [activeHallId, setActiveHallId] = useState('all');
   const [loading, setLoading] = useState(true);
 
   // Ma'lumotlarni yuklash
@@ -14,10 +14,10 @@ const TablesGrid = ({ onSelectTable }) => {
       if (window.electron && window.electron.ipcRenderer) {
         // Promise.all orqali ikkalasini parallel yuklaymiz (Tezlik oshadi)
         const [hallsData, tablesData] = await Promise.all([
-            window.electron.ipcRenderer.invoke('get-halls'),
-            window.electron.ipcRenderer.invoke('get-tables')
+          window.electron.ipcRenderer.invoke('get-halls'),
+          window.electron.ipcRenderer.invoke('get-tables')
         ]);
-        
+
         setHalls(hallsData || []);
         setTables(tablesData || []);
       }
@@ -36,14 +36,14 @@ const TablesGrid = ({ onSelectTable }) => {
   // 2. Real-vaqt yangilanishi (YANGI HOOK BILAN)
   // 'db-change' kanali orqali xabar kelsa, va u bizga kerakli turda bo'lsa -> yangilaymiz
   useIpcListener('db-change', (event, data) => {
-      if (['tables', 'sales', 'table-items'].includes(data.type)) {
-          loadData();
-      }
+    if (['tables', 'sales', 'table-items'].includes(data.type)) {
+      loadData();
+    }
   });
 
   // Filterlash logikasi
   const filteredTables = tables.filter(table => {
-    const isActiveStatus = table.status !== 'free'; 
+    const isActiveStatus = table.status !== 'free';
     const isHallMatch = activeHallId === 'all' || table.hall_id === activeHallId;
     return isActiveStatus && isHallMatch;
   });
@@ -75,7 +75,7 @@ const TablesGrid = ({ onSelectTable }) => {
           <h1 className="text-2xl font-bold text-gray-800">Kassa</h1>
           <div className="text-right">
             <p className="font-bold text-lg text-gray-800">
-               {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
             <p className="text-xs text-gray-500">{new Date().toLocaleDateString()}</p>
           </div>
@@ -92,16 +92,16 @@ const TablesGrid = ({ onSelectTable }) => {
       {/* GRID */}
       <div className="p-6 overflow-y-auto pb-32">
         <p className="text-gray-500 mb-4 text-sm">Faol buyurtmalar: {filteredTables.length} ta</p>
-        
+
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredTables.map((table) => (
-            <div 
-              key={table.id} 
+            <div
+              key={table.id}
               onClick={() => onSelectTable(table)}
               className={`p-4 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between h-auto min-h-[170px] ${getStatusColor(table.status)}`}
             >
               <div className="flex flex-col gap-2">
-                
+
                 {/* Tepasi: Nom va Status */}
                 <div className="flex justify-between items-start">
                   <h3 className="font-bold text-lg text-gray-800 leading-tight">{table.name}</h3>
@@ -111,22 +111,22 @@ const TablesGrid = ({ onSelectTable }) => {
                 {/* Info qatori: Chek raqami va Ofitsiant */}
                 <div className="flex flex-wrap gap-2">
                   {table.current_check_number > 0 && (
-                      <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-xs font-bold border border-gray-200">
-                          <Hash size={10}/> {table.current_check_number}
-                      </span>
+                    <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-xs font-bold border border-gray-200">
+                      <Hash size={10} /> {table.current_check_number}
+                    </span>
                   )}
                   {table.waiter_name && (
-                      <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-xs font-bold border border-blue-100">
-                          <User size={10}/> {table.waiter_name}
-                      </span>
+                    <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-xs font-bold border border-blue-100">
+                      <User size={10} /> {table.waiter_name}
+                    </span>
                   )}
                 </div>
 
                 {/* Vaqt va Mehmonlar */}
                 <div className="flex items-center gap-3 text-xs text-gray-400 font-medium">
-                    <div className="flex items-center gap-1"><Clock size={12} /> {table.start_time || '--:--'}</div>
-                    <div className="w-px h-3 bg-gray-300"></div>
-                    <div className="flex items-center gap-1"><Users size={12} /> {table.guests}</div>
+                  <div className="flex items-center gap-1"><Clock size={12} /> {table.start_time || '--:--'}</div>
+                  <div className="w-px h-3 bg-gray-300"></div>
+                  <div className="flex items-center gap-1"><Users size={12} /> {table.guests}</div>
                 </div>
               </div>
 
@@ -141,10 +141,10 @@ const TablesGrid = ({ onSelectTable }) => {
           ))}
 
           {filteredTables.length === 0 && (
-             <div className="col-span-full py-20 text-center">
-               <div className="inline-block p-4 rounded-full bg-gray-100 mb-3 text-gray-400"><Receipt size={32} /></div>
-               <p className="text-gray-500">Bu zalda faol buyurtmalar yo'q</p>
-             </div>
+            <div className="col-span-full py-20 text-center">
+              <div className="inline-block p-4 rounded-full bg-gray-100 mb-3 text-gray-400"><Receipt size={32} /></div>
+              <p className="text-gray-500">Bu zalda faol buyurtmalar yo'q</p>
+            </div>
           )}
         </div>
       </div>
@@ -152,4 +152,8 @@ const TablesGrid = ({ onSelectTable }) => {
   );
 };
 
-export default TablesGrid;
+// React.memo bilan render optimizatsiyasi
+export default React.memo(TablesGrid, (prevProps, nextProps) => {
+  // Faqat onSelectTable funksiyasi o'zgarmasa, re-render qilmaymiz
+  return prevProps.onSelectTable === nextProps.onSelectTable;
+});
