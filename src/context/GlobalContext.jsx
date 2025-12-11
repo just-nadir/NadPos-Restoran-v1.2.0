@@ -22,19 +22,17 @@ export const GlobalProvider = ({ children }) => {
   const checkLicense = async () => {
     if (window.electron) {
       try {
-        const result = await window.electron.ipcRenderer.invoke('license-check');
+        const result = await window.electron.ipcRenderer.invoke('license-get-info');
         setLicense({
           active: result.active,
-          reason: result.reason,
+          reason: result.status, // rename reason -> status
           expiry: result.expiry,
-          lastOnline: result.lastOnline,
+          lastOnline: null,
           checked: true
         });
         return result.active;
       } catch (err) {
         console.error("License check failed:", err);
-        // Xatolik bo'lsa bloklash xavfsizroq bo'lishi mumkin, lekin UX uchun ehtiyot bo'lish kerak.
-        // Hozircha 'checked: true' deb belgilaymiz.
         setLicense(prev => ({ ...prev, checked: true }));
         return false;
       }

@@ -201,17 +201,17 @@ function initDB() {
         )
     `).run();
 
-    // 10. Litsenziya (YANGI)
-    db.prepare(`
-        CREATE TABLE IF NOT EXISTS license_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key TEXT,
-            type TEXT, -- 'lifetime' or 'monthly'
-            expiry_date TEXT,
-            last_login TEXT,
-            is_active INTEGER DEFAULT 1
-        )
-    `).run();
+    // 10. Litsenziya (YANGI) - REMOVED
+    // db.prepare(`
+    //     CREATE TABLE IF NOT EXISTS license_data (
+    //         id INTEGER PRIMARY KEY AUTOINCREMENT,
+    //         key TEXT,
+    //         type TEXT, -- 'lifetime' or 'monthly'
+    //         expiry_date TEXT,
+    //         last_login TEXT,
+    //         is_active INTEGER DEFAULT 1
+    //     )
+    // `).run();
 
     // --- INDEKSLAR ---
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_tables_status ON tables(status)`).run();

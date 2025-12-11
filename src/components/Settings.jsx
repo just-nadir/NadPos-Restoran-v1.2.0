@@ -9,9 +9,9 @@ const Settings = () => {
   const [users, setUsers] = useState([]);
   const [notification, setNotification] = useState(null);
   const [systemPrinters, setSystemPrinters] = useState([]);
-  const [hardwareId, setHardwareId] = useState('');
-  const [licenseKey, setLicenseKey] = useState('');
 
+
+  const [licenseInfo, setLicenseInfo] = useState({ active: false, status: 'checking', hwid: '' });
   const [newKitchen, setNewKitchen] = useState({ name: '', printer_ip: '' });
   const [newUser, setNewUser] = useState({ name: '', pin: '', role: 'waiter' });
 
@@ -57,11 +57,9 @@ const Settings = () => {
       const printers = await ipcRenderer.invoke('get-system-printers');
       setSystemPrinters(printers || []);
 
-      // Hardware ID olish
-      const hwidData = await ipcRenderer.invoke('license-get-hwid');
-      if (hwidData.success) {
-        setHardwareId(hwidData.hardwareId);
-      }
+      // License Info olish (YANGI)
+      const lData = await ipcRenderer.invoke('license-get-info');
+      setLicenseInfo(lData);
     } catch (err) { console.error(err); }
   };
 
@@ -173,6 +171,7 @@ const Settings = () => {
           <button onClick={() => setActiveTab('printers')} className={`w-full text-left px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-colors ${activeTab === 'printers' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><Printer size={20} /> Kassa Printeri</button>
           <button onClick={() => setActiveTab('sms')} className={`w-full text-left px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-colors ${activeTab === 'sms' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><MessageSquare size={20} /> SMS Sozlamalari</button>
           <button onClick={() => setActiveTab('license')} className={`w-full text-left px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-colors ${activeTab === 'license' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><Key size={20} /> Litsenziya</button>
+
           <button onClick={() => setActiveTab('database')} className={`w-full text-left px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-colors ${activeTab === 'database' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><Database size={20} /> Baza va Tizim</button>
         </div>
         <div className="mt-auto">
@@ -379,64 +378,62 @@ const Settings = () => {
           </div>
         )}
 
-        {/* --- LICENSE --- */}
+
+
+        {/* --- LICENSE (FILE BASED) --- */}
         {activeTab === 'license' && (
           <div className="max-w-2xl space-y-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-blue-500">
-              <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2"><PcCase size={20} className="text-blue-500" /> Hardware ID</h3>
-              <p className="text-sm text-gray-500 mb-4">Kompyuteringizning unikal identifikatori. Litsenziya yaratish uchun bizga yuboring.</p>
-              <div className="bg-gray-50 p-4 rounded-xl border-2 border-dashed border-gray-300">
+            <div className={`bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 ${licenseInfo.active ? 'border-l-green-500' : 'border-l-red-500'}`}>
+              <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+                {licenseInfo.active ? <CheckCircle size={20} className="text-green-500" /> : <Shield size={20} className="text-red-500" />}
+                Litsenziya Holati
+              </h3>
+
+              <div className="flex items-center justify-between mb-4">
+                <span className={`px-3 py-1 rounded-full text-sm font-bold ${licenseInfo.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  {licenseInfo.active ? 'FAOL' : 'FAOL EMAS'}
+                </span>
+                {licenseInfo.expiry && <span className="text-sm text-gray-500">Muddat: {new Date(licenseInfo.expiry).toLocaleDateString()}</span>}
+              </div>
+
+              {!licenseInfo.active && (
+                <div className="mb-4 text-sm text-gray-600">
+                  <p>Holat: <b>{licenseInfo.status}</b></p>
+                  <p className="mt-2">Ilovani faollashtirish uchun:</p>
+                  <ol className="list-decimal list-inside mt-1 space-y-1">
+                    <li>Quyidagi tugmani bosib so'rov faylini yarating.</li>
+                    <li>Hosil bo'lgan faylni dasturchiga yuboring.</li>
+                    <li>Sizga berilgan litsenziya faylini dastur papkasiga joylashtiring.</li>
+                  </ol>
+                </div>
+              )}
+
+              <div className="bg-gray-50 p-4 rounded-xl border-2 border-dashed border-gray-300 mt-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
+                  <div>
                     <p className="text-xs text-gray-400 mb-1">HARDWARE ID:</p>
-                    <p className="font-mono text-lg font-bold text-gray-800 select-all">{hardwareId || 'Yuklanmoqda...'}</p>
+                    <p className="font-mono text-lg font-bold text-gray-800 select-all">{licenseInfo.hwid || '...'}</p>
                   </div>
-                  <button
-                    onClick={() => { navigator.clipboard.writeText(hardwareId); showNotify('success', 'Hardware ID nusxalandi!'); }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
-                  >
-                    Ko'chirish
-                  </button>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2"><Key size={20} className="text-green-500" /> Litsenziya Faollashtirish</h3>
-              <p className="text-sm text-gray-500 mb-4">Bizdan olgan litsenziya kalitingizni quyidagi maydonga joylashtiring.</p>
-              <div className="space-y-4">
-                <textarea
-                  value={licenseKey}
-                  onChange={e => setLicenseKey(e.target.value)}
-                  placeholder="Litsenziya kalitini bu yerga joylashtiring..."
-                  rows="4"
-                  className="w-full p-4 bg-gray-50 rounded-xl border-2 border-gray-200 outline-none focus:border-green-500 font-mono text-sm resize-none"
-                />
+              <div className="mt-6">
                 <button
                   onClick={async () => {
-                    if (!licenseKey.trim()) {
-                      showNotify('error', 'Kalit kiritilmagan!');
-                      return;
-                    }
                     setLoading(true);
                     try {
-                      const result = await window.electron.ipcRenderer.invoke('license-activate', licenseKey.trim());
-                      if (result.success) {
-                        showNotify('success', 'Litsenziya faollashtirildi!');
-                        setLicenseKey('');
+                      const res = await window.electron.ipcRenderer.invoke('license-create-request');
+                      if (res.success) {
+                        showNotify('success', `So'rov fayli yaratildi: ${res.path}`);
                       } else {
-                        showNotify('error', result.message || 'Xatolik yuz berdi!');
+                        showNotify('error', res.error);
                       }
-                    } catch (err) {
-                      showNotify('error', err.message);
-                    }
+                    } catch (err) { showNotify('error', err.message); }
                     setLoading(false);
                   }}
-                  disabled={loading || !licenseKey.trim()}
-                  className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 flex items-center justify-center gap-2"
                 >
-                  {loading ? <RefreshCw size={20} className="animate-spin" /> : <CheckCircle size={20} />}
-                  {loading ? 'Tekshirilmoqda...' : 'Faollashtirish'}
+                  <PcCase size={20} /> Litsenziya so'rovini yaratish (.hid)
                 </button>
               </div>
             </div>
