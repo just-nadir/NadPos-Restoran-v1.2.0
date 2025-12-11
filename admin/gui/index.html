@@ -233,9 +233,10 @@
                 document.getElementById('fileName').innerText = path.split(/[\\/]/).pop();
                 document.getElementById('hwidDisplay').innerText = res.data.hwid;
 
-                dropZone.style.display = 'none'; // drop zonani yashirish (qayta tanlash uchun refresh qilish kerak yoki kichik tugma qo'yish mumkin, hozircha oddiy)
+                dropZone.style.display = 'none'; // drop zonani yashirish
+                document.getElementById('genBtn').disabled = false;
             } else {
-                listEl.innerHTML = '<div style="padding: 10px; text-align: center; color: #6b7280; font-size: 13px;">.hid fayllar topilmadi. Dastur papkasida JustPOS_*.hid fayllar borligiga ishonch hosil qiling.</div>';
+                alert("Faylni o'qishda xatolik. Dastur papkasida JustPOS_*.hid fayllar borligiga ishonch hosil qiling.");
             }
         }
 

@@ -28,10 +28,10 @@ const saveSettings = (data) => {
             }
         });
         update(data);
-        
+
         // Token bekor qilish (sozlamalar o'zgardi)
         resetToken();
-        
+
         log.info("SMS Controller: Sozlamalar saqlandi");
         return { success: true };
     } catch (error) {
@@ -90,8 +90,8 @@ const getHistory = () => {
  */
 const sendBroadcast = async (message) => {
     try {
-        const customers = db.prepare('SELECT phone, name FROM customers WHERE phone IS NOT NULL AND phone != ""').all();
-        
+        const customers = db.prepare("SELECT phone, name FROM customers WHERE phone IS NOT NULL AND phone != ''").all();
+
         let sentCount = 0;
         let failedCount = 0;
         const totalCustomers = customers.length;
@@ -101,9 +101,9 @@ const sendBroadcast = async (message) => {
         for (const customer of customers) {
             // Rate limiting: sekundiga 2 ta SMS (500ms kutish)
             await new Promise(resolve => setTimeout(resolve, 500));
-            
+
             const result = await sendSMS(customer.phone, message, 'news');
-            
+
             if (result.success) {
                 sentCount++;
             } else {
@@ -113,9 +113,9 @@ const sendBroadcast = async (message) => {
         }
 
         log.info(`SMS Controller: Ommaviy yuborish tugadi - Yuborildi: ${sentCount}, Xato: ${failedCount}`);
-        
-        return { 
-            success: true, 
+
+        return {
+            success: true,
             count: sentCount,
             failed: failedCount,
             total: totalCustomers
