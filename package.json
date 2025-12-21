@@ -81,6 +81,7 @@
       "electron/**/*",
       "package.json"
     ],
+    "icon": "resources/icon.ico",
     "asar": true,
     "asarUnpack": [
       "**/*.node"

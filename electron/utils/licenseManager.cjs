@@ -16,8 +16,17 @@ TDWzSj4NA03mF85gmyxX4zDOUuPvc98oLS00QaO22vDIO5b6HqEHebAydyRu6mNU
 pQIDAQAB
 -----END PUBLIC KEY-----`;
 
-const APP_DIR = path.dirname(app.getAppPath()); // Production da resources papkasi yoki exe yonida
-const CHECK_FILE_DIR = app.isPackaged ? path.dirname(app.getPath('exe')) : app.getAppPath();
+const APP_DIR = path.dirname(app.getAppPath());
+const CHECK_FILE_DIR = path.join(app.getPath('userData'), 'licenses');
+
+// Ensure directory exists
+if (!fs.existsSync(CHECK_FILE_DIR)) {
+    try {
+        fs.mkdirSync(CHECK_FILE_DIR, { recursive: true });
+    } catch (e) {
+        log.error('Failed to create license dir:', e);
+    }
+}
 
 // --- UTILS ---
 

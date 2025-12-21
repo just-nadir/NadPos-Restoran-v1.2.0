@@ -9,7 +9,34 @@
         "electron": "wait-on tcp:5174 && electron .",
         "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"cross-env BROWSER=none npm run electron\"",
         "rebuild": "electron-rebuild",
-        "postinstall": "electron-rebuild"
+        "postinstall": "electron-rebuild",
+        "dist": "npm run build && electron-builder"
+    },
+    "build": {
+        "appId": "com.nadpos.admin",
+        "productName": "NadPos License Manager",
+        "directories": {
+            "output": "release"
+        },
+        "files": [
+            "dist/**/*",
+            "electron/**/*",
+            "package.json",
+            "private.pem"
+        ],
+        "asar": true,
+        "asarUnpack": [
+            "**/*.node"
+        ],
+        "win": {
+            "target": "nsis",
+            "icon": "resources/icon.ico"
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true
+        }
     },
     "keywords": [],
     "author": "Ares Boston Tech LLC",
@@ -38,8 +65,11 @@
         "electron": "^29.1.0",
         "electron-builder": "^24.13.3",
         "electron-rebuild": "^3.2.9",
+        "png-to-ico": "^3.0.1",
+        "png2icons": "^2.0.1",
         "postcss": "^8.4.35",
         "tailwindcss": "^3.4.1",
+        "to-ico": "^1.1.5",
         "vite": "^5.1.5",
         "wait-on": "^7.2.0"
     }
